@@ -1,7 +1,12 @@
-import { useCart } from '../context/useCart' //Improved features based on the comments left on Homework 1: added the ability to remove items from the cart incrementally.
+import { useCart } from '../context/useCart'
 
 export default function Cart() {
-  const { cart, grandTotal, decrementItem, incrementItem, clearCart } = useCart()
+  const { cart, grandTotal, decrementItem, incrementItem, clearCart, checkout, checkoutStatus } =
+    useCart()
+
+  const handlePlaceOrder = async () => {
+    await checkout()
+  }
 
   return (
     <section id="cart" className="cart-section">
@@ -51,12 +56,20 @@ export default function Cart() {
         )}
 
         <div className="cart-summary">
-          <button type="button" className="clear-btn" onClick={clearCart}>
+          <button type="button" className="clear-btn" onClick={clearCart} disabled={cart.length === 0}>
             Clear Entire Cart
           </button>
           <div className="cart-total">
             Grand Total: $<span>{grandTotal.toFixed(2)}</span>
           </div>
+          <button
+            type="button"
+            className="btn btn-primary site-btn"
+            onClick={handlePlaceOrder}
+            disabled={cart.length === 0 || checkoutStatus === 'submitting'}
+          >
+            {checkoutStatus === 'submitting' ? 'Placing Order…' : 'Place Order'}
+          </button>
         </div>
       </div>
     </section>

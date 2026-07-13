@@ -1,9 +1,11 @@
 import { useCallback, useMemo, useState } from 'react'
 import { CartContext } from './CartContext'
+import { placeOrder } from '../services/api'
 
 export function CartProvider({ children }) {
   const [cart, setCart] = useState([])
   const [toast, setToast] = useState(null)
+  const [checkoutStatus, setCheckoutStatus] = useState('idle') // 'idle' | 'submitting' | 'error'
 
   const showToast = useCallback((message) => {
     setToast(null)
@@ -62,6 +64,38 @@ export function CartProvider({ children }) {
     [cart],
   )
 
+  // Sends the current cart to the backend as a new order, persists it to
+  // MongoDB, then clears the cart on success.
+  const checkout = useCallback(
+    async (customer = {}) => {
+      if (cart.length === 0) return { success: false, error: 'Cart is empty' }
+
+      setCheckoutStatus('submitting')
+      try {
+        const order = await placeOrder({
+          items: cart.map((item) => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+          })),
+          grandTotal,
+          customer,
+        })
+
+        setCheckoutStatus('idle')
+        clearCart()
+        showToast('Order placed! We\u2019re getting it ready.')
+        return { success: true, order }
+      } catch (err) {
+        setCheckoutStatus('error')
+        showToast('Something went wrong placing your order. Please try again.')
+        return { success: false, error: err.message }
+      }
+    },
+    [cart, grandTotal, clearCart, showToast],
+  )
+
   const value = useMemo(
     () => ({
       cart,
@@ -70,6 +104,8 @@ export function CartProvider({ children }) {
       decrementItem,
       incrementItem,
       clearCart,
+      checkout,
+      checkoutStatus,
       toast,
       dismissToast,
     }),
@@ -80,6 +116,8 @@ export function CartProvider({ children }) {
       decrementItem,
       incrementItem,
       clearCart,
+      checkout,
+      checkoutStatus,
       toast,
       dismissToast,
     ],
